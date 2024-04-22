@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Thống kê</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <script>
+        async function fetchAPI(url) {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data;
+        }
+
+        // Phiếu nhập
+        async function loadReceiptData() {
+            const receipts = await fetchAPI('http://localhost:8080/api/getReceipts');
+            
+            const receiptTable = document.querySelector('.receipt-table');
+            receipts.forEach(async (receiptItem) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${receiptItem.id}</td>
+                    <td>${receiptItem.receiptDate}</td>
+                    <td>${receiptItem.totalQuantity}</td>
+                    <td>${receiptItem.totalPrice}</td>
+                    <button class="detail-receipt-btn">Xem chi tiết</button>
+                `;
+                receiptTable.appendChild(row);
+
+                const receiptRows = await fetchAPI(`http://localhost:8080/api/getReceiptRows/${receiptItem.id}`);
+                const receiptRowTable = document.createElement('table');
+                receiptRowTable.innerHTML = `
+                    <tr>
+                        <th>Id</th>
+                        <th>Sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Giá nhập</th>
+                        <th>Tổng giá</th>
+                        <th>Nhà cung cấp</th>
+                    </tr>
+                `;
+
+                receiptRowTable.className = 'receipt-row-table';
+                receiptRows.forEach((receiptRow) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${receiptRow.id}</td>
+                        <td>${receiptRow.productName}</td>
+                        <td>${receiptRow.quantity}</td>
+                        <td>${receiptRow.receiptPrice}</td>
+                        <td>${receiptRow.totalPrice}</td>
+                        <td>${receiptRow.supplierName}</td>
+                    `;
+                    receiptRowTable.appendChild(row);
+                });
+
+                // Tạo overlay và thêm bảng chi tiết vào overlay
+                const overlayReceipt = document.createElement('div');
+                overlayReceipt.innerHTML=
+                overlayReceipt.id = 'overlayReceipt';
+                overlayReceipt.appendChild(receiptRowTable);
+                document.body.appendChild(overlayReceipt);
+
+                // Thêm sự kiện click cho nút 'Xem chi tiết'
+                row.querySelector('.detail-receipt-btn').addEventListener('click', () => {
+                    overlayReceipt.style.display = 'block'; // Hiển thị overlay
+                });
+
+                // Thêm sự kiện click cho overlay để ẩn nó khi người dùng nhấn vào một vị trí bất kỳ ngoài bảng chi tiết
+                overlayReceipt.addEventListener('click', (event) => {
+                    if (event.target === overlayReceipt) {
+                        overlayReceipt.style.display = 'none'; // Ẩn overlay
+                    }
+                });
+            });
+        }
+
+        // Phiếu xuất 
+
+        // Hàm lấy dữ liệu từ API và hiển thị lên trang web
+        async function loadData() {
+            const exports = await fetchAPI('http://localhost:8080/api/getExports');
+            
+            // Hiển thị dữ liệu lên trang web
+            const exportTable = document.querySelector('.export-table');
+            exports.forEach(async (exportItem) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${exportItem.id}</td>
+                    <td>${exportItem.exportDate}</td>
+                    <td>${exportItem.totalQuantity}</td>
+                    <td>${exportItem.totalPrice}</td>
+                    <button class="detail-export-btn">Xem chi tiết</button>
+                `;
+                exportTable.appendChild(row);
+
+                const exportRows = await fetchAPI(`http://localhost:8080/api/getExportRows/${exportItem.id}`);
+                const exportRowTable = document.createElement('table');
+                exportRowTable.innerHTML = `
+                    <tr>
+                        <th>Id</th>
+                        <th>Sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Giá xuất</th>
+                        <th>Tổng giá</th>
+                        <th>Khách hàng</th>
+                    </tr>
+                `;
+
+                exportRowTable.className = 'export-row-table';
+                exportRows.forEach((exportRow) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${exportRow.id}</td>
+                        <td>${exportRow.productName}</td>
+                        <td>${exportRow.quantity}</td>
+                        <td>${exportRow.exportPrice}</td>
+                        <td>${exportRow.totalPrice}</td>
+                        <td>${exportRow.customerName}</td>
+                    `;
+                    exportRowTable.appendChild(row);
+                });
+
+                // Tạo overlay và thêm bảng chi tiết vào overlay
+                const overlay = document.createElement('div');
+                overlay.innerHTML=
+                overlay.id = 'overlay';
+                overlay.appendChild(exportRowTable);
+                document.body.appendChild(overlay);
+
+                // Thêm sự kiện click cho nút 'Xem chi tiết'
+                row.querySelector('.detail-export-btn').addEventListener('click', () => {
+                    overlay.style.display = 'block'; // Hiển thị overlay
+                });
+
+                // Thêm sự kiện click cho overlay để ẩn nó khi người dùng nhấn vào một vị trí bất kỳ ngoài bảng chi tiết
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) {
+                        overlay.style.display = 'none'; // Ẩn overlay
+                    }
+                });
+            });
+        }
+
+        // Gọi hàm loadData khi trang web tải xong
+        window.onload = function() {
+            loadData();
+            loadReceiptData();
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Trang chủ</h1>
+        </header>
+        <div class="main-container">
+            <aside>
+                <a href="receipt.html">Nhập kho</a>
+                <a href="export.html">Xuất kho</a>
+                <a href="stat.html" class="is-active">Kiểm kê</a>
+                <a href="inventory.html">Tồn kho</a>
+                <hr>
+                <a href="supplier.html">Nhà cung cấp</a>
+                <a href="customer.html">Khách hàng</a>
+                <hr>
+                <a href="index.html">Đăng xuất</a>
+            </aside>
+            <div class="form-wrapper">
+                <div>
+                    <h1>Phiếu nhập</h1>
+                    <table class="receipt-table">
+                        <tr>
+                            <th>Id</th>
+                            <th>Ngày nhập</th>
+                            <th>Tổng số lượng</th>
+                            <th>Tổng giá</th>
+                        </tr>
+                    </table>
+                </div>
+                
+                <hr>
+
+                <div>
+                    <h1>Phiếu xuất</h1>
+                    <table class="export-table">
+                        <tr>
+                            <th>Id</th>
+                            <th>Ngày xuất</th>
+                            <th>Tổng số lượng</th>
+                            <th>Tổng giá</th>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

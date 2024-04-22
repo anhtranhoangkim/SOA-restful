@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Input Form</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+  <script>
+    let hasAddedRow = false;
+
+    async function fetchAPI(url) {
+      const response = await fetch(url);
+      const data = await response.json();
+      return data;
+    }
+    
+    async function postAPI(url, data) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      return response.json();
+    }
+    
+    function createOptionElement(item) {
+      const option = document.createElement('option');
+      option.value = item.displayName;
+      option.dataset.id = item.id;
+      return option;
+    }
+    
+    async function addObject() {
+      hasAddedRow = true;
+      var objectList = document.getElementById('objectList');
+      var newObject = document.createElement('div');
+
+      const products = await fetchAPI('http://localhost:8080/api/getProducts');
+      const customers = await fetchAPI('http://localhost:8080/api/getCustomers');
+      
+      // Products 
+      const productInput = document.createElement('input');
+      productInput.setAttribute('list', 'productList');
+      productInput.setAttribute('placeholder', 'Sản phẩm');
+      productInput.name = 'productName';
+      const productList = document.createElement('datalist');
+      productList.setAttribute('id', 'productList')
+      products.forEach(product => productList.appendChild(createOptionElement(product)));
+      
+      // Customers
+      const customerInput = document.createElement('input');
+      customerInput.setAttribute('list', 'customerList');
+      customerInput.setAttribute('placeholder', 'Khách hàng');
+      customerInput.name = 'customerName';
+      const customerList = document.createElement('datalist');
+      customerList.setAttribute('id', 'customerList');
+      customers.forEach(customer => customerList.appendChild(createOptionElement(customer)));
+      
+      newObject.innerHTML = `
+        <div class="form_value_wrap">
+          ${productInput.outerHTML}
+          ${productList.outerHTML}
+          <input type="number" min="1" name="quantity" placeholder="Số lượng" required>
+          <input type="number" min="0.01" step="0.01" name="exportPrice" placeholder="Giá xuất" required>
+          ${customerInput.outerHTML}
+          ${customerList.outerHTML}
+          <br>
+          <br>
+        </div> 
+      `;
+      
+      objectList.appendChild(newObject);
+    }
+    
+    function deleteExport(id) {
+      fetch(`http://localhost:8080/api/delCustomer/${id}`, {
+          method: 'DELETE',
+      })
+      .then(response => response.text())
+      .then(data => {
+          alert(data);
+          setTimeout(function() {
+              if (!alert.isOpen) {
+                  window.location.reload();
+              }
+          }, 0);
+      })
+      .catch((error) => console.error('Error:', error));
+    }
+
+    async function submitExportForm(event) {
+      if (!hasAddedRow) {
+        alert('Vui lòng thêm hàng hóa trước khi tạo phiếu xuất!');
+        return;
+      }
+
+      event.preventDefault();
+      
+      const export_item = {
+        exportDate: new Date(),
+        exportRows: []
+      };
+      
+      console.log(export_item)
+      const form_value_wraps = document.querySelectorAll('.form_value_wrap');
+      for (const form_value_wrap of form_value_wraps) {
+        let productName = form_value_wrap.querySelector('input[name="productName"]').value;
+        const quantity = form_value_wrap.querySelector('input[name="quantity"]').value;
+        const exportPrice = form_value_wrap.querySelector('input[name="exportPrice"]').value;
+        let customerName = form_value_wrap.querySelector('input[name="customerName"]').value;
+        
+        const productOption = document.querySelector(`#productList option[value="${productName}"]`);
+        if (productOption) {
+          productName = productOption.dataset.id;
+        } else {
+          alert('Vui lòng chọn đúng hàng hóa')
+          return;
+        }
+        console.log(productName)
+        const customerOption = document.querySelector(`#customerList option[value="${customerName}"]`);
+        if (customerOption) {
+          customerName = customerOption.dataset.id;
+        } else {
+          const newCustomer = await postAPI('http://localhost:8080/api/addCustomer', { displayName: customerName });
+          customerName = newCustomer.id;
+        }
+        console.log(customerName)
+        const exportRow = {
+          "quantity": quantity,
+          "exportPrice": exportPrice,
+          "idProduct": productName,
+          "idCustomer": customerName
+        };
+        
+        console.log(exportRow)
+        export_item.exportRows.push(exportRow);
+
+        const savedExport = await postAPI('http://localhost:8080/api/addExport', export_item);
+
+        for (const exportRow of export_item.exportRows) {
+          exportRow.idExport = savedExport.id;
+          const response = await fetch('http://localhost:8080/api/addExportRow', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(exportRow),
+          });
+      
+          if (response.ok) {
+              const savedExportRow = await response.json();
+              console.log('ExportRow added successfully: ' + savedExportRow.id);
+          } else {
+              const errorMessage = await response.text();
+              if (errorMessage.startsWith("Số")) {
+                  alert("Số lượng vượt quá cho phép");
+                  await fetch(`http://localhost:8080/api/deleteExport/${savedExport.id}`, {
+                      method: 'DELETE',
+                  });
+                  return;
+              }
+          }      
+      }
+    }
+      
+      alert('Thêm phiếu xuất thành công');
+      location.reload();
+    }
+  </script>
+
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Trang chủ</h1>
+  </header>
+  
+  <div class="main-container">
+    <aside>
+      <a href="receipt.html">Nhập kho</a>
+      <a href="export.html" class="is-active">Xuất kho</a>
+      <a href="stat.html">Kiểm kê</a>
+      <a href="inventory.html">Tồn kho</a>
+      <hr>
+      <a href="supplier.html">Nhà cung cấp</a>
+      <a href="customer.html">Khách hàng</a>
+      <hr>
+      <a href="index.html">Đăng xuất</a>
+  </aside>
+
+  <div class="form-wrapper">
+    <h1>Thêm phiếu xuất</h1>
+    <form onsubmit="submitExportForm(event)">
+      <div id="objectList"></div>
+      <div>
+        <button type="button" onclick="addObject()" class="create-obj">+ Thêm hàng hóa</button>
+        <input type="submit" value="Tạo phiếu xuất" class="submit-btn">
+      </div>
+    </form>
+  </div>
+  </div>
+</div>
+</body>
+</html>

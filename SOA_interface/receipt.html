@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Phiếu nhập</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+  <script>
+    let hasAddedRow = false;
+
+    async function fetchAPI(url) {
+      const response = await fetch(url);
+      const data = await response.json();
+      return data;
+    }
+
+    async function postAPI(url, data) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      return response.json();
+    }
+
+    function createOptionElement(item) {
+      const option = document.createElement('option');
+      option.value = item.displayName;
+      option.dataset.id = item.id;
+      return option;
+    }
+
+    async function addObject() {
+      hasAddedRow = true;
+
+      var objectList = document.getElementById('objectList');
+      var newObject = document.createElement('div');
+
+      const products = await fetchAPI('http://localhost:8080/api/getProducts');
+      const suppliers = await fetchAPI('http://localhost:8080/api/getSuppliers');
+
+      // Products 
+      const productInput = document.createElement('input');
+      productInput.setAttribute('list', 'productList');
+      productInput.setAttribute('placeholder', 'Sản phẩm');
+      productInput.name = 'productName';
+      const productList = document.createElement('datalist');
+      productList.setAttribute('id', 'productList')
+      products.forEach(product => productList.appendChild(createOptionElement(product)));
+
+      // Suppliers
+      const supplierInput = document.createElement('input');
+      supplierInput.setAttribute('list', 'supplierList');
+      supplierInput.setAttribute('placeholder', 'Nhà cung cấp');
+      supplierInput.name = 'supplierName';
+      const supplierList = document.createElement('datalist');
+      supplierList.setAttribute('id', 'supplierList');
+      suppliers.forEach(supplier => supplierList.appendChild(createOptionElement(supplier)));
+
+      newObject.innerHTML = `
+        <div class="form_value_wrap">
+          ${productInput.outerHTML}
+          ${productList.outerHTML}
+          <input type="number" min="1" name="quantity" placeholder="Số lượng" required>
+          <input type="number" min="0.01" step="0.01" name="receiptPrice" placeholder="Giá nhập" required>
+          ${supplierInput.outerHTML}
+          ${supplierList.outerHTML}
+        </div> 
+      `;
+
+      objectList.appendChild(newObject);
+    }
+
+    async function submitForm(event) {
+      if (!hasAddedRow) {
+        alert('Vui lòng thêm hàng hóa trước khi tạo phiếu nhập!');
+        return;
+      }
+
+      event.preventDefault();
+
+      const receipt = {
+        receiptDate: new Date(),
+        receiptRows: []
+      };
+
+      const form_value_wraps = document.querySelectorAll('.form_value_wrap');
+      for (const form_value_wrap of form_value_wraps) {
+        let productName = form_value_wrap.querySelector('input[name="productName"]').value;
+        const quantity = form_value_wrap.querySelector('input[name="quantity"]').value;
+        const receiptPrice = form_value_wrap.querySelector('input[name="receiptPrice"]').value;
+        let supplierName = form_value_wrap.querySelector('input[name="supplierName"]').value;
+
+        const productOption = document.querySelector(`#productList option[value="${productName}"]`);
+        if (productOption) {
+          productName = productOption.dataset.id;
+        } else {
+          const newProduct = await postAPI('http://localhost:8080/api/addProduct', { displayName: productName });
+          productName = newProduct.id;
+        }
+
+        const supplierOption = document.querySelector(`#supplierList option[value="${supplierName}"]`);
+        if (supplierOption) {
+          supplierName = supplierOption.dataset.id;
+        } else {
+          const newSupplier = await postAPI('http://localhost:8080/api/addSupplier', { displayName: supplierName });
+          supplierName = newSupplier.id;
+        }
+
+        const receiptRow =  {
+          "quantity": quantity,
+          "receiptPrice": receiptPrice,
+          "idProduct": productName,
+          "idSupplier": supplierName
+        };
+
+        receipt.receiptRows.push(receiptRow);
+      }
+
+      const savedReceipt = await postAPI('http://localhost:8080/api/addReceipt', receipt);
+
+      for (const receiptRow of receipt.receiptRows) {
+        receiptRow.idReceipt = savedReceipt.id;
+        const savedReceiptRow = await postAPI('http://localhost:8080/api/addReceiptRow', receiptRow);
+        console.log('ReceiptRow added successfully: ' + savedReceiptRow.id);
+      }
+
+      alert('Thêm phiếu nhập thành công');
+      location.reload();
+    }
+  </script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Trang chủ</h1>
+  </header>
+  
+  <div class="main-container">
+    <aside>
+      <a href="receipt.html" class="is-active">Nhập kho</a>
+      <a href="export.html">Xuất kho</a>
+      <a href="stat.html">Kiểm kê</a>
+      <a href="inventory.html">Tồn kho</a>
+      <hr>
+      <a href="supplier.html">Nhà cung cấp</a>
+      <a href="customer.html">Khách hàng</a>
+      <hr>
+      <a href="index.html">Đăng xuất</a>
+    </aside>
+
+    <div class="form-wrapper">
+      <h1>Thêm phiếu nhập</h1>
+      <form onsubmit="submitForm(event)">
+        <div id="objectList"></div>
+        <div>
+          <button type="button" onclick="addObject()" class="create-obj">+ Thêm hàng hóa</button>
+          <input type="submit" value="Tạo phiếu nhập" class="submit-btn">
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

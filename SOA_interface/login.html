@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="style.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+  <title>Đăng nhập</title>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>Đăng nhập</h1>
+    <p>Đăng nhập để truy cập vào hệ thống</p>
+    <form id="loginForm">
+    <label for="username"></label>
+    <input type="text" id="userName" name="username" placeholder="Username" required><br>
+    <label for="password"></label>
+    <input type="password" id="password" name="password" placeholder="Password" required><br>
+    <input type="submit" value="Đăng nhập">
+</form>
+</div>
+
+<script>
+  document.getElementById("loginForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    var user = {
+      userName: document.getElementById("userName").value,
+      password: document.getElementById("password").value
+    };
+
+    fetch('http://localhost:8080/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': 'YOUR_API_KEY'
+        },
+        body: JSON.stringify(user),
+      })
+      .then(response => response.text())
+      .then(data => {
+        if (data.startsWith("Login successful")) {
+          window.location.href = "home.html";
+        } else {
+          alert(data);
+        }
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+    });
+</script>
+</body>
+</html>

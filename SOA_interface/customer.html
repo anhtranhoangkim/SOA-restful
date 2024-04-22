@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Khách hàng</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Trang chủ</h1>
+    </header>
+
+    <div class="main-container">
+        <aside>
+            <a href="receipt.html">Nhập kho</a>
+            <a href="export.html">Xuất kho</a>
+            <a href="stat.html">Kiểm kê</a>
+            <a href="inventory.html">Tồn kho</a>
+            <hr>
+            <a href="supplier.html">Nhà cung cấp</a>
+            <a href="customer.html" class="is-active">Khách hàng</a>
+            <hr>
+            <a href="index.html">Đăng xuất</a>
+            </aside>
+
+            <div class="form-wrapper">
+            <h1>Thêm khách hàng</h1>
+            <form id="supplierForm">
+                <input type="text" id="displayName" name="displayName" placeholder="Khách hàng" required>
+                <input type="text" id="address" name="address" placeholder="Địa chỉ" required>
+                <input type="text" id="phone" name="phone" placeholder="Số điện thoại" required>
+                <input type="text" id="email" name="email" placeholder="Email" required>
+                <input type="text" id="moreInfo" name="moreInfo" placeholder="Thông tin thêm">
+                <input type="submit" value="Thêm khách hàng" class="submit-btn">
+            </form>
+
+            <hr>
+
+            <table id="supplierTable">
+                <tr>
+                    <th>ID</th>
+                    <th>Khách hàng</th>
+                    <th>Địa chỉ</th>
+                    <th>Số điện thoại</th>
+                    <th>Email</th>
+                    <th>Thông tin thêm</th>
+                    <th>Xóa</th>
+                    <th>Sửa</th>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById("supplierForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+    
+        var supplier = {
+            displayName: document.getElementById("displayName").value,
+            address: document.getElementById("address").value,
+            phone: document.getElementById("phone").value,
+            email: document.getElementById("email").value,
+            moreInfo: document.getElementById("moreInfo").value
+        };
+    
+        fetch('http://localhost:8080/api/addCustomer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(supplier),
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data.startsWith("{")) {
+                alert("Add supplier successfully");
+                setTimeout(function() {
+                    if (!alert.isOpen) {
+                        window.location.reload();
+                    }
+                }, 0);
+            } else {
+                alert("error");
+            }
+        })
+        .catch((error) => {
+            console.error('Error: ', error);
+        });
+    });
+    
+    // list
+    function updateSupplier(supplier) {
+        fetch('http://localhost:8080/api/putCustomer', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(supplier),
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+            setTimeout(function() {
+                if (!alert.isOpen) {
+                    window.location.reload();
+                }
+            }, 0);
+        })
+        .catch((error) => console.error('Error:', error));
+    }
+    
+    function deleteSupplier(id) {
+        fetch(`http://localhost:8080/api/delCustomer/${id}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+            setTimeout(function() {
+                if (!alert.isOpen) {
+                    window.location.reload();
+                }
+            }, 0);
+        })
+        .catch((error) => console.error('Error:', error));
+    }
+
+    fetch('http://localhost:8080/api/getCustomers')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(supplier => {
+                var row = document.createElement('tr');
+                Object.values(supplier).forEach((text, index) => {
+                    var cell = document.createElement('td');
+                    cell. innerText = text;
+                    if (index !== 0) { 
+                        cell.contentEditable = "true";
+                    }
+                    
+                    row.appendChild(cell)
+                });
+
+                var editCell = document.createElement('td');
+                editCell.innerHTML = '<button class="submit-btn" style="width: 90%">Update</button>';
+                editCell.querySelector('button').onclick = function() {
+                    var cells = row.querySelectorAll('td');
+                    supplier.displayName = cells[1].innerText;
+                    supplier.address = cells[2].innerText;
+                    supplier.phone = cells[3].innerText;
+                    supplier.email = cells[4].innerText;
+                    supplier.moreInfo = cells[5].innerText;
+                    updateSupplier(supplier);
+                };
+
+                row.appendChild(editCell);
+
+                var deleteCell = document.createElement('td');
+                deleteCell.innerHTML = '<button class="search-input">Delete</button>';
+                deleteCell.querySelector('button').onclick = function() {
+                    deleteSupplier(supplier.id);
+                };
+                row.appendChild(deleteCell);
+                document.getElementById('supplierTable').appendChild(row);
+            });
+        })
+        .catch(error => console.error('Error:', error));
+</script>
+</body>
+</html>

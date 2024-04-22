@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tồn kho</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    
+    <script>
+        async function fetchAPI(url) {
+            const response = await fetch(url);
+            const data  = await response.json();
+            return data;
+        }
+
+        async function loadData() {
+            const products = await fetchAPI('http://localhost:8080/api/searchProducts');
+
+            const productTable = document.querySelector('.product-table');
+            products.forEach(async (productItem) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${productItem.id}</td>
+                    <td>${productItem.displayName}</td>
+                    <td>${productItem.inventory}</td>
+                `;
+                productTable.appendChild(row)
+            });
+        };
+
+        async function loadSearchedData(displayName) {
+            const products = await fetchAPI(`http://localhost:8080/api/searchProducts/${displayName}`);
+
+            const productTable = document.querySelector('.product-table');
+            // Clear the table for new search results
+            productTable.innerHTML = `
+                <tr>
+                    <th>Id</th>
+                    <th>Tên hàng</th>
+                    <th>Số lượng tồn</th>
+                </tr>
+            `;
+            products.forEach((productItem) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${productItem.id}</td>
+                    <td>${productItem.displayName}</td>
+                    <td>${productItem.inventory}</td>
+                `;
+                productTable.appendChild(row)
+            });
+        };
+
+        window.onload = function() {
+            loadData();
+            document.querySelector('form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const displayName = document.querySelector('#displayName').value;
+                loadSearchedData(displayName);
+            });
+        };
+    </script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Trang chủ</h1>
+    </header>
+
+    <div class="main-container">
+        <aside>
+            <a href="receipt.html">Nhập kho</a>
+            <a href="export.html">Xuất kho</a>
+            <a href="stat.html">Kiểm kê</a>
+            <a href="inventory.html" class="is-active">Tồn kho</a>
+            <hr>
+            <a href="supplier.html">Nhà cung cấp</a>
+            <a href="customer.html">Khách hàng</a>
+            <hr>
+            <a href="index.html">Đăng xuất</a>
+          </aside>
+
+          <div class="form-wrapper">
+            <h1>Quản lý hàng tồn kho</h1>
+            <form class="form_value_wrap">
+                <input type="text" name="displayName" placeholder="Tìm theo tên" id="displayName" class="search-input">
+                <input type="submit" value="Tìm kiếm" class="submit-btn search-btn">
+            </form>
+            <table class="product-table">
+                <tr>
+                    <th>Id</th>
+                    <th>Tên hàng</th>
+                    <th>Số lượng tồn</th>
+                </tr>
+            </table>
+          </div>
+    </div>
+</div>
+</body>
+</html>
